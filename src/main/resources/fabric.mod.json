@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "shockysspotifyhud",
+  "version": "${version}",
+  "name": "Shocky's Spotify HUD",
+  "description": "Shows your current Spotify song in a customizable HUD and lets you control playback. No API key needed.",
+  "authors": ["Shocky"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["dev.shocky.spotifyhud.ShockysSpotifyHud"]
+  },
+  "depends": {
+    "fabricloader": ">=0.18.0",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
