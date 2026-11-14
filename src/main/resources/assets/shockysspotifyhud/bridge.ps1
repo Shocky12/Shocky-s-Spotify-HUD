@@ -8,6 +8,16 @@ param(
 
 $ErrorActionPreference = 'SilentlyContinue'
 
+# Debug log: %TEMP%\shockys_spotify_debug.log
+$logFile = Join-Path $env:TEMP 'shockys_spotify_debug.log'
+Set-Content -LiteralPath $logFile -Value ("Started " + (Get-Date) + " PS " + $PSVersionTable.PSVersion) -ErrorAction SilentlyContinue
+$lastLog = ''
+function Log([string]$m) {
+    if ($m -eq $script:lastLog) { return }
+    $script:lastLog = $m
+    try { Add-Content -LiteralPath $logFile -Value ((Get-Date -Format 'HH:mm:ss') + ' ' + $m) } catch {}
+}
+
 Add-Type -AssemblyName System.Runtime.WindowsRuntime
 $managerType = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType = WindowsRuntime]
 $propsType   = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties, Windows.Media.Control, ContentType = WindowsRuntime]
@@ -22,7 +32,8 @@ function Await($op, [Type]$type) {
     try {
         $task = $asTask.MakeGenericMethod($type).Invoke($null, @($op))
         if ($task.Wait(5000)) { return $task.Result }
-    } catch {}
+        Log 'Await timed out'
+    } catch { Log ('Await failed: ' + $_) }
     return $null
 }
 
@@ -38,14 +49,21 @@ function PressKey([byte]$vk, [int]$times) {
     }
 }
 
+Log ('asTask found: ' + ($null -ne $asTask))
 $manager = Await ($managerType::RequestAsync()) $managerType
+Log ('manager created: ' + ($null -ne $manager))
 
 function Get-Spotify {
     try {
+        $ids = @()
+        $found = $null
         foreach ($s in $manager.GetSessions()) {
-            if ($s.SourceAppUserModelId -like '*Spotify*') { return $s }
+            $ids += $s.SourceAppUserModelId
+            if ($null -eq $found -and $s.SourceAppUserModelId -like '*Spotify*') { $found = $s }
         }
-    } catch {}
+        Log ('sessions: ' + ($ids -join ', '))
+        return $found
+    } catch { Log ('GetSessions failed: ' + $_) }
     return $null
 }
 
@@ -80,6 +98,7 @@ function Emit-State {
         if ($pos -lt 0) { $pos = 0 }
         [Console]::Out.WriteLine("STATE|$status|$(B64 $props.Title)|$(B64 $props.Artist)|$pos|$dur")
     } catch {
+        Log ('Emit-State failed: ' + $_)
         [Console]::Out.WriteLine('STATE|NONE')
     }
 }
