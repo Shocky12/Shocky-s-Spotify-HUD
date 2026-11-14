@@ -98,16 +98,22 @@ function Run-Command([string]$line) {
 }
 
 
+$asStreamForRead = ([System.IO.WindowsRuntimeStreamExtensions].GetMethods() | Where-Object {
+    $_.Name -eq 'AsStreamForRead' -and $_.GetParameters().Count -eq 1
+} | Select-Object -First 1)
+
 function Save-Art($props) {
     try {
         $ref = $props.Thumbnail
-        if ($null -eq $ref -or $artDir -eq '') { return $null }
+        if ($null -eq $ref) { Log 'art: no thumbnail yet'; return $null }
+        if ($artDir -eq '') { Log 'art: no art dir'; return $null }
         $rs = Await ($ref.OpenReadAsync()) $streamType
-        if ($null -eq $rs) { return $null }
-        $net = [System.IO.WindowsRuntimeStreamExtensions]::AsStreamForRead($rs)
+        if ($null -eq $rs) { Log 'art: OpenReadAsync returned nothing'; return $null }
+        $net = $asStreamForRead.Invoke($null, @($rs))
         $ms = New-Object System.IO.MemoryStream
         $net.CopyTo($ms)
         $net.Dispose()
+        Log ('art: stream bytes = ' + $ms.Length)
         if ($ms.Length -lt 100) { return $null }
         $ms.Position = 0
         $img = [System.Drawing.Image]::FromStream($ms)
@@ -120,6 +126,7 @@ function Save-Art($props) {
         $path = Join-Path $artDir ('art_' + $script:artCount + '.png')
         $bmp.Save($path, [System.Drawing.Imaging.ImageFormat]::Png)
         $bmp.Dispose(); $img.Dispose(); $ms.Dispose()
+        Log ('art: saved ' + $path)
         return $path
     } catch { Log ('Save-Art failed: ' + $_) }
     return $null

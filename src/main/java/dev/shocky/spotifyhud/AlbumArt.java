@@ -29,6 +29,7 @@ public final class AlbumArt {
             MinecraftClient.getInstance().getTextureManager().registerTexture(id, tex);
             tex.upload();
             currentId = id;
+            ShockysSpotifyHud.LOGGER.info("Album art loaded: {}", path);
         } catch (Exception e) {
             ShockysSpotifyHud.LOGGER.warn("Could not load album art", e);
             currentId = null;
