@@ -6,6 +6,7 @@
   "description": "Shows your current Spotify song in a customizable HUD and lets you control playback. No API key needed.",
   "authors": ["Shocky"],
   "license": "MIT",
+  "icon": "assets/shockysspotifyhud/icon.png",
   "environment": "client",
   "entrypoints": {
     "client": ["dev.shocky.spotifyhud.ShockysSpotifyHud"]
