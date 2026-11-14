@@ -12,7 +12,7 @@ public final class HudConfig {
     public boolean visible = true;
     public int x = 6;
     public int y = 6;
-    public int width = 190;
+    public int width = 130;
     public float scale = 1.0f;
 
     public String preset = "Default";
@@ -71,7 +71,7 @@ public final class HudConfig {
     }
 
     private void sanitize() {
-        if (configVersion < 2) { width = 190; configVersion = 2; }
+        if (configVersion < 3) { width = 130; configVersion = 3; }
         opacity = Math.max(0, Math.min(100, opacity));
         scale = Math.max(0.3f, Math.min(4.0f, scale));
         width = Math.max(80, Math.min(320, width));

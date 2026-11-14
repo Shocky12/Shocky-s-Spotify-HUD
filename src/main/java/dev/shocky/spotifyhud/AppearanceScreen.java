@@ -91,9 +91,9 @@ public class AppearanceScreen extends Screen {
         HudConfig c = HudConfig.get();
 
         int colW = 150;
-        int left = Math.max(8, this.width - (colW * 2 + 8) - 6);
+        int left = Math.max(4, (this.width - (colW * 2 + 8)) / 2);
         int right = left + colW + 8;
-        int top = Math.max(4, (this.height - 262) / 2);
+        int top = Math.max(4, (this.height - 240) / 2);
         int y = top + 18;
         int step = 23;
 
@@ -160,8 +160,8 @@ public class AppearanceScreen extends Screen {
 
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        int left = Math.max(8, this.width - (150 * 2 + 8) - 6);
-        int top = Math.max(4, (this.height - 262) / 2);
+        int left = Math.max(4, (this.width - (150 * 2 + 8)) / 2);
+        int top = Math.max(4, (this.height - 240) / 2);
         ctx.drawTextWithShadow(this.textRenderer, this.title, left, top + 4, 0xFFFFFFFF);
         for (Object[] l : labels) {
             ctx.drawTextWithShadow(this.textRenderer, Text.literal((String) l[0]),

@@ -154,6 +154,13 @@ public final class SpotifyBridge {
     public String artist() { return artist; }
     public long durationMs() { return durationMs; }
 
+    /** Jump to a position in the current song (milliseconds). */
+    public void seek(long ms) {
+        positionMs = Math.max(0, ms);
+        stampNanos = System.nanoTime();
+        send("seek:" + Math.max(0, ms));
+    }
+
     public boolean isPlaying() { return status.equals("Playing"); }
 
     public long positionMs() {

@@ -82,6 +82,14 @@ function Run-Command([string]$line) {
         '^playpause$' { if ($s) { [void](Await ($s.TryTogglePlayPauseAsync()) ([bool])) } }
         '^next$'      { if ($s) { [void](Await ($s.TrySkipNextAsync()) ([bool])) } }
         '^prev$'      { if ($s) { [void](Await ($s.TrySkipPreviousAsync()) ([bool])) } }
+        '^seek:([0-9]{1,9})$' {
+            if ($s) {
+                $ticks = [int64]$Matches[1] * 10000
+                Log ('seek enabled: ' + $s.GetPlaybackInfo().Controls.IsPlaybackPositionEnabled)
+                $ok = Await ($s.TryChangePlaybackPositionAsync($ticks)) ([bool])
+                Log ('seek result: ' + $ok)
+            }
+        }
         '^vol:up$'    { PressKey 175 5 }
         '^vol:down$'  { PressKey 174 5 }
         '^vol:mute$'  { PressKey 173 1 }

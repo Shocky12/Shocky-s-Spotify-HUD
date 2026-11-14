@@ -23,7 +23,7 @@ public class ControlsScreen extends Screen {
     protected void init() {
         SpotifyBridge b = ShockysSpotifyHud.BRIDGE;
         int cx = this.width / 2;
-        int top = this.height / 2 - 90;
+        int top = this.height / 2 - 89;
 
         addDrawableChild(ButtonWidget.builder(Text.literal("<<"), btn -> b.send("prev"))
                 .dimensions(cx - 102, top + 36, 64, 20).build());
@@ -69,7 +69,7 @@ public class ControlsScreen extends Screen {
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
         int cx = this.width / 2;
-        int top = this.height / 2 - 90;
+        int top = this.height / 2 - 89;
         ctx.fill(cx - 112, top, cx + 112, top + 178, 0xC0000000);
         ctx.drawCenteredTextWithShadow(this.textRenderer, this.title, cx, top + 7, 0xFFFFFFFF);
 
