@@ -11,7 +11,9 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public final class HudRenderer {
@@ -180,7 +182,113 @@ public final class HudRenderer {
             drawScaled(ctx, tr, Text.literal(time), L.right() - tw, L.row3() + 1, 0.7f, artistCol);
         }
 
+        // Lyrics panel under the HUD
+        if (c.showLyrics && b.isAvailable() && !b.status().equals("NONE")) {
+            LyricsManager.ensure(b.title(), b.artist());
+            drawLyrics(ctx, tr, c, L, style, bg1, bg2, titleCol, artistCol, posMs);
+        } else if (LyricsManager.state() != LyricsManager.State.OFF && !c.showLyrics) {
+            LyricsManager.reset();
+        }
+
         ctx.getMatrices().popMatrix();
+    }
+
+
+    private static void drawLyrics(DrawContext ctx, TextRenderer tr, HudConfig c, Layout L, Style style,
+                                   int bg1, int bg2, int titleCol, int artistCol, long posMs) {
+        final int y0 = L.h() + 3;
+        final int ph = 22;
+        final float s = 0.85f;
+
+        if (c.shadow) {
+            int sc = Math.round(0x55 * c.opacity / 100f) << 24;
+            fillShape(ctx, 2, y0 + 2, L.w(), ph, c.rounded, sc, sc);
+        }
+        fillShape(ctx, 0, y0, L.w(), ph, c.rounded, bg1, bg2);
+        if (c.border) {
+            strokeShape(ctx, 0, y0, L.w(), ph, c.rounded, 0xFF000000 | HudConfig.rgb(c.borderColor, 0x3A3A3A));
+        }
+
+        LyricsManager.State st = LyricsManager.state();
+        if (st == LyricsManager.State.LOADING) {
+            drawCentered(ctx, tr, "Loading lyrics...", style, L, y0 + 8, s, artistCol);
+            return;
+        }
+        if (st == LyricsManager.State.NOT_FOUND) {
+            drawCentered(ctx, tr, "No lyrics found", style, L, y0 + 8, s, artistCol);
+            return;
+        }
+        if (st != LyricsManager.State.READY) return;
+
+        int idx = LyricsManager.lineIndex(posMs);
+        if (idx < 0) return;
+        String text = LyricsManager.text(idx).trim();
+        if (text.isEmpty()) {
+            drawCentered(ctx, tr, "...", style, L, y0 + 8, s, artistCol);
+            return;
+        }
+
+        String[] words = text.split("\\s+");
+        int n = words.length;
+        Style bold = style.withBold(true);
+
+        // Which word is being sung (estimated from the line's length)
+        long start = LyricsManager.start(idx);
+        long end = idx + 1 < LyricsManager.count() ? LyricsManager.start(idx + 1) : start + 5000;
+        long span = Math.max(300, Math.min(end - start, 450L * n + 400));
+        float f = Math.min(1f, Math.max(0f, (posMs - start) / (float) span));
+        float total = 0;
+        for (String w : words) total += w.length() + 1;
+        int cw = n - 1;
+        float acc = 0;
+        for (int i = 0; i < n; i++) {
+            acc += (words[i].length() + 1) / total;
+            if (f < acc) { cw = i; break; }
+        }
+
+        // Layout using bold widths so words never jump around when the bold moves
+        int[] wb = new int[n];
+        for (int i = 0; i < n; i++) wb[i] = tr.getWidth(Text.literal(words[i]).setStyle(bold));
+        int space = tr.getWidth(Text.literal(" ").setStyle(bold));
+        int maxW = (int) ((L.w() - 10) / s);
+
+        List<int[]> lines = new ArrayList<>(); // {firstWord, lastWord, width}
+        int ls = 0, x = 0;
+        for (int i = 0; i < n; i++) {
+            if (x > 0 && x + wb[i] > maxW) {
+                lines.add(new int[]{ls, i - 1, x - space});
+                ls = i;
+                x = 0;
+            }
+            x += wb[i] + space;
+        }
+        lines.add(new int[]{ls, n - 1, x - space});
+
+        int cl = 0;
+        for (int li = 0; li < lines.size(); li++) {
+            if (cw >= lines.get(li)[0] && cw <= lines.get(li)[1]) cl = li;
+        }
+        int first = lines.size() <= 2 ? 0 : (cl + 1 < lines.size() ? cl : cl - 1);
+        int shown = Math.min(2, lines.size() - first);
+        int yStart = y0 + (shown == 1 ? 8 : 3);
+
+        for (int k = 0; k < shown; k++) {
+            int[] ln = lines.get(first + k);
+            int lx = (int) (((L.w() / s) - ln[2]) / 2f);
+            int yy = yStart + k * 8;
+            for (int i = ln[0]; i <= ln[1]; i++) {
+                int col = i < cw ? titleCol : (i == cw ? titleCol : artistCol);
+                Style st2 = i == cw ? bold : style;
+                drawScaled(ctx, tr, Text.literal(words[i]).setStyle(st2), Math.round(lx * s), yy, s, col);
+                lx += wb[i] + space;
+            }
+        }
+    }
+
+    private static void drawCentered(DrawContext ctx, TextRenderer tr, String text, Style style, Layout L,
+                                     int y, float scale, int color) {
+        int w = Math.round(tr.getWidth(Text.literal(text).setStyle(style)) * scale);
+        drawScaled(ctx, tr, Text.literal(text).setStyle(style), (L.w() - w) / 2, y, scale, color);
     }
 
     private static void drawScaled(DrawContext ctx, TextRenderer tr, Text text, int x, int y, float scale, int color) {

@@ -93,7 +93,7 @@ public class AppearanceScreen extends Screen {
         int colW = 150;
         int left = Math.max(4, (this.width - (colW * 2 + 8)) / 2);
         int right = left + colW + 8;
-        int top = Math.max(4, (this.height - 240) / 2);
+        int top = Math.max(4, (this.height - 264) / 2);
         int y = top + 18;
         int step = 23;
 
@@ -114,6 +114,7 @@ public class AppearanceScreen extends Screen {
         toggle(left, y + step * 4, colW, "Shadow", c.shadow, v -> HudConfig.get().shadow = v);
         toggle(left, y + step * 5, colW, "Progress bar", c.showProgress, v -> HudConfig.get().showProgress = v);
         toggle(left, y + step * 6, colW, "Control icons", c.showButtons, v -> HudConfig.get().showButtons = v);
+        toggle(left, y + step * 7, colW, "Lyrics", c.showLyrics, v -> HudConfig.get().showLyrics = v);
 
         // --- Right column: font + layout ---
         addDrawableChild(ButtonWidget.builder(Text.literal("Font: " + HudFonts.name(c.font)), btn -> {
@@ -133,7 +134,7 @@ public class AppearanceScreen extends Screen {
         toggle(right, y + step * 6, colW, "Album art", c.showArt, v -> HudConfig.get().showArt = v);
 
         // --- Hex colors ---
-        int fy = y + step * 7 + 14;
+        int fy = y + step * 8 + 14;
         int fw = 56;
         int gap = 6;
         int fx = left;
@@ -161,7 +162,7 @@ public class AppearanceScreen extends Screen {
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
         int left = Math.max(4, (this.width - (150 * 2 + 8)) / 2);
-        int top = Math.max(4, (this.height - 240) / 2);
+        int top = Math.max(4, (this.height - 264) / 2);
         ctx.drawTextWithShadow(this.textRenderer, this.title, left, top + 4, 0xFFFFFFFF);
         for (Object[] l : labels) {
             ctx.drawTextWithShadow(this.textRenderer, Text.literal((String) l[0]),

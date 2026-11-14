@@ -31,6 +31,7 @@ public final class HudConfig {
     public boolean showProgress = true;
     public boolean showArt = true;
     public boolean showButtons = true;
+    public boolean showLyrics = false;
     public int configVersion = 0;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();

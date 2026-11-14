@@ -19,11 +19,15 @@ public class ControlsScreen extends Screen {
         return Text.literal("HUD: " + (HudConfig.get().visible ? "Shown" : "Hidden"));
     }
 
+    private static Text lyricsLabel() {
+        return Text.literal("Lyrics: " + (HudConfig.get().showLyrics ? "ON" : "OFF"));
+    }
+
     @Override
     protected void init() {
         SpotifyBridge b = ShockysSpotifyHud.BRIDGE;
         int cx = this.width / 2;
-        int top = this.height / 2 - 89;
+        int top = this.height / 2 - 98;
 
         addDrawableChild(ButtonWidget.builder(Text.literal("<<"), btn -> b.send("prev"))
                 .dimensions(cx - 102, top + 36, 64, 20).build());
@@ -39,26 +43,32 @@ public class ControlsScreen extends Screen {
         addDrawableChild(ButtonWidget.builder(Text.literal("Vol +"), btn -> b.send("vol:up"))
                 .dimensions(cx + 38, top + 62, 64, 20).build());
 
-        search = new TextFieldWidget(this.textRenderer, cx - 102, top + 94, 138, 20, Text.literal("Search"));
+        addDrawableChild(ButtonWidget.builder(lyricsLabel(), btn -> {
+            HudConfig.get().showLyrics = !HudConfig.get().showLyrics;
+            btn.setMessage(lyricsLabel());
+            HudConfig.save();
+        }).dimensions(cx - 102, top + 88, 204, 20).build());
+
+        search = new TextFieldWidget(this.textRenderer, cx - 102, top + 114, 138, 20, Text.literal("Search"));
         search.setPlaceholder(Text.literal("Search a song..."));
         search.setMaxLength(100);
         addDrawableChild(search);
         addDrawableChild(ButtonWidget.builder(Text.literal("Search"), btn -> {
             String q = search.getText().trim();
             if (!q.isEmpty()) b.search(q);
-        }).dimensions(cx + 40, top + 94, 62, 20).build());
+        }).dimensions(cx + 40, top + 114, 62, 20).build());
 
         addDrawableChild(ButtonWidget.builder(Text.literal("Customize HUD..."),
                         btn -> this.client.setScreen(new AppearanceScreen(this)))
-                .dimensions(cx - 102, top + 122, 204, 20).build());
+                .dimensions(cx - 102, top + 142, 204, 20).build());
 
         addDrawableChild(ButtonWidget.builder(visibleLabel(), btn -> {
             HudConfig.get().visible = !HudConfig.get().visible;
             btn.setMessage(visibleLabel());
             HudConfig.save();
-        }).dimensions(cx - 102, top + 148, 100, 20).build());
+        }).dimensions(cx - 102, top + 168, 100, 20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Done"), btn -> this.close())
-                .dimensions(cx + 2, top + 148, 100, 20).build());
+                .dimensions(cx + 2, top + 168, 100, 20).build());
     }
 
     @Override
@@ -69,8 +79,8 @@ public class ControlsScreen extends Screen {
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
         int cx = this.width / 2;
-        int top = this.height / 2 - 89;
-        ctx.fill(cx - 112, top, cx + 112, top + 178, 0xC0000000);
+        int top = this.height / 2 - 98;
+        ctx.fill(cx - 112, top, cx + 112, top + 196, 0xC0000000);
         ctx.drawCenteredTextWithShadow(this.textRenderer, this.title, cx, top + 7, 0xFFFFFFFF);
 
         SpotifyBridge b = ShockysSpotifyHud.BRIDGE;
