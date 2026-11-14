@@ -1,0 +1,41 @@
+name: Build Shocky's Spotify HUD
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 9.2.1
+
+      - name: Download HUD fonts (Google Fonts, SIL Open Font License)
+        run: |
+          mkdir -p src/main/resources/assets/shockysspotifyhud/font
+          cd src/main/resources/assets/shockysspotifyhud/font
+          base=https://github.com/google/fonts/raw/main/ofl
+          curl -fsSL -o Pacifico-Regular.ttf     $base/pacifico/Pacifico-Regular.ttf         || echo "Pacifico download failed"
+          curl -fsSL -o Lobster-Regular.ttf      $base/lobster/Lobster-Regular.ttf           || echo "Lobster download failed"
+          curl -fsSL -o PressStart2P-Regular.ttf $base/pressstart2p/PressStart2P-Regular.ttf || echo "PressStart2P download failed"
+          curl -fsSL -o CutiveMono-Regular.ttf   $base/cutivemono/CutiveMono-Regular.ttf     || echo "CutiveMono download failed"
+          curl -fsSL -o Bangers-Regular.ttf      $base/bangers/Bangers-Regular.ttf           || echo "Bangers download failed"
+          ls -la
+
+      - name: Build
+        run: gradle build --no-daemon
+
+      - name: Upload the mod jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShockysSpotifyHUD
+          path: build/libs/ShockysSpotifyHUD-*.jar
