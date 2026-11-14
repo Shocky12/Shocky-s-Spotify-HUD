@@ -25,6 +25,7 @@ public final class SpotifyBridge {
     private volatile long positionMs = 0;
     private volatile long durationMs = 0;
     private volatile long stampNanos = System.nanoTime();
+    private volatile String artPath = "";
 
     private volatile Process process;
     private volatile Path cmdDir;
@@ -82,6 +83,10 @@ public final class SpotifyBridge {
     }
 
     private void parse(String line) {
+        if (line.startsWith("ART|")) {
+            artPath = line.substring(4).trim();
+            return;
+        }
         if (!line.startsWith("STATE|")) return;
         String[] p = line.split("\\|", -1);
         if (p.length < 2 || p[1].equals("NONE")) {
@@ -144,6 +149,7 @@ public final class SpotifyBridge {
     public boolean isAvailable() { return available; }
     public String errorMessage() { return error; }
     public String status() { return status; }
+    public String artPath() { return artPath; }
     public String title() { return title; }
     public String artist() { return artist; }
     public long durationMs() { return durationMs; }

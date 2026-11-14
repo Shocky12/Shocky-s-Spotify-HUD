@@ -12,7 +12,7 @@ public final class HudConfig {
     public boolean visible = true;
     public int x = 6;
     public int y = 6;
-    public int width = 150;
+    public int width = 190;
     public float scale = 1.0f;
 
     public String preset = "Default";
@@ -29,6 +29,9 @@ public final class HudConfig {
     public String accentColor = "#1DB954";
     public String font = "minecraft:default";
     public boolean showProgress = true;
+    public boolean showArt = true;
+    public boolean showButtons = true;
+    public int configVersion = 0;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Pattern HEX = Pattern.compile("^#?[0-9A-Fa-f]{6}$");
@@ -68,6 +71,7 @@ public final class HudConfig {
     }
 
     private void sanitize() {
+        if (configVersion < 2) { width = 190; configVersion = 2; }
         opacity = Math.max(0, Math.min(100, opacity));
         scale = Math.max(0.3f, Math.min(4.0f, scale));
         width = Math.max(80, Math.min(320, width));

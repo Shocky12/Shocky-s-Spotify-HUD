@@ -19,8 +19,16 @@ function Log([string]$m) {
 }
 
 Add-Type -AssemblyName System.Runtime.WindowsRuntime
+Add-Type -AssemblyName System.Drawing
 $managerType = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType = WindowsRuntime]
 $propsType   = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties, Windows.Media.Control, ContentType = WindowsRuntime]
+$streamType  = [Windows.Storage.Streams.IRandomAccessStreamWithContentType, Windows.Storage.Streams, ContentType = WindowsRuntime]
+$artDir = ''
+if ($CmdDir -ne '') { $artDir = Split-Path -Parent $CmdDir }
+$script:artKey = ''
+$script:artTries = 0
+$script:artDone = $false
+$script:artCount = 0
 
 Add-Type -Namespace Shocky -Name Keys -MemberDefinition '[DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);'
 
@@ -81,6 +89,52 @@ function Run-Command([string]$line) {
     }
 }
 
+
+function Save-Art($props) {
+    try {
+        $ref = $props.Thumbnail
+        if ($null -eq $ref -or $artDir -eq '') { return $null }
+        $rs = Await ($ref.OpenReadAsync()) $streamType
+        if ($null -eq $rs) { return $null }
+        $net = [System.IO.WindowsRuntimeStreamExtensions]::AsStreamForRead($rs)
+        $ms = New-Object System.IO.MemoryStream
+        $net.CopyTo($ms)
+        $net.Dispose()
+        if ($ms.Length -lt 100) { return $null }
+        $ms.Position = 0
+        $img = [System.Drawing.Image]::FromStream($ms)
+        $bmp = New-Object System.Drawing.Bitmap 64, 64
+        $g = [System.Drawing.Graphics]::FromImage($bmp)
+        $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+        $g.DrawImage($img, 0, 0, 64, 64)
+        $g.Dispose()
+        $script:artCount++
+        $path = Join-Path $artDir ('art_' + $script:artCount + '.png')
+        $bmp.Save($path, [System.Drawing.Imaging.ImageFormat]::Png)
+        $bmp.Dispose(); $img.Dispose(); $ms.Dispose()
+        return $path
+    } catch { Log ('Save-Art failed: ' + $_) }
+    return $null
+}
+
+function Update-Art($props) {
+    $key = [string]$props.Title + '|' + [string]$props.Artist
+    if ($key -ne $script:artKey) {
+        $script:artKey = $key
+        $script:artTries = 0
+        $script:artDone = $false
+        [Console]::Out.WriteLine('ART|')
+    }
+    if (-not $script:artDone -and $script:artTries -lt 10) {
+        $script:artTries++
+        $p = Save-Art $props
+        if ($p) {
+            $script:artDone = $true
+            [Console]::Out.WriteLine('ART|' + $p)
+        }
+    }
+}
+
 function Emit-State {
     $s = Get-Spotify
     if ($null -eq $s) { [Console]::Out.WriteLine('STATE|NONE'); return }
@@ -96,6 +150,7 @@ function Emit-State {
         }
         if ($dur -gt 0 -and $pos -gt $dur) { $pos = $dur }
         if ($pos -lt 0) { $pos = 0 }
+        Update-Art $props
         [Console]::Out.WriteLine("STATE|$status|$(B64 $props.Title)|$(B64 $props.Artist)|$pos|$dur")
     } catch {
         Log ('Emit-State failed: ' + $_)

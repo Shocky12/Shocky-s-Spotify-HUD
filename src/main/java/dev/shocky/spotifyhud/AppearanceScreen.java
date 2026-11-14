@@ -93,7 +93,7 @@ public class AppearanceScreen extends Screen {
         int colW = 150;
         int left = Math.max(8, this.width - (colW * 2 + 8) - 6);
         int right = left + colW + 8;
-        int top = Math.max(4, (this.height - 236) / 2);
+        int top = Math.max(4, (this.height - 262) / 2);
         int y = top + 18;
         int step = 23;
 
@@ -113,6 +113,7 @@ public class AppearanceScreen extends Screen {
         toggle(left, y + step * 3, colW, "Border", c.border, v -> HudConfig.get().border = v);
         toggle(left, y + step * 4, colW, "Shadow", c.shadow, v -> HudConfig.get().shadow = v);
         toggle(left, y + step * 5, colW, "Progress bar", c.showProgress, v -> HudConfig.get().showProgress = v);
+        toggle(left, y + step * 6, colW, "Control icons", c.showButtons, v -> HudConfig.get().showButtons = v);
 
         // --- Right column: font + layout ---
         addDrawableChild(ButtonWidget.builder(Text.literal("Font: " + HudFonts.name(c.font)), btn -> {
@@ -129,9 +130,10 @@ public class AppearanceScreen extends Screen {
         addDrawableChild(new Slide(right, y + step * 4, colW, "Y", 0, Math.max(50, this.height - 40), c.y, true,
                 v -> HudConfig.get().y = v.intValue()));
         toggle(right, y + step * 5, colW, "HUD visible", c.visible, v -> HudConfig.get().visible = v);
+        toggle(right, y + step * 6, colW, "Album art", c.showArt, v -> HudConfig.get().showArt = v);
 
         // --- Hex colors ---
-        int fy = y + step * 6 + 14;
+        int fy = y + step * 7 + 14;
         int fw = 56;
         int gap = 6;
         int fx = left;
@@ -159,7 +161,7 @@ public class AppearanceScreen extends Screen {
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
         int left = Math.max(8, this.width - (150 * 2 + 8) - 6);
-        int top = Math.max(4, (this.height - 236) / 2);
+        int top = Math.max(4, (this.height - 262) / 2);
         ctx.drawTextWithShadow(this.textRenderer, this.title, left, top + 4, 0xFFFFFFFF);
         for (Object[] l : labels) {
             ctx.drawTextWithShadow(this.textRenderer, Text.literal((String) l[0]),

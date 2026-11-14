@@ -2,10 +2,12 @@ package dev.shocky.spotifyhud;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,6 +28,8 @@ public final class HudRenderer {
         String artist;
         float progress = -1f;
         boolean playing = false;
+        long posMs = 0;
+        long durMs = 0;
 
         if (!b.isAvailable()) {
             title = "Spotify HUD";
@@ -37,22 +41,30 @@ public final class HudRenderer {
             title = b.title().isEmpty() ? "Unknown title" : b.title();
             artist = b.artist().isEmpty() ? "Unknown artist" : b.artist();
             playing = b.isPlaying();
-            long dur = b.durationMs();
-            if (dur > 0) progress = Math.min(1f, Math.max(0f, b.positionMs() / (float) dur));
+            durMs = b.durationMs();
+            posMs = b.positionMs();
+            if (durMs > 0) progress = Math.min(1f, Math.max(0f, posMs / (float) durMs));
         }
 
-        final int pad = 6;
+        final int pad = 4;
         int w = c.width;
-        int h = c.showProgress ? 34 : 28;
-        int maxText = w - pad * 2;
+        int h = c.showProgress ? 40 : 30;
+        int artSize = h - pad * 2;
+        int tx = c.showArt ? pad + artSize + 5 : pad + 2;
+        int iconsW = c.showButtons ? 30 : 0;
+        int rightEdge = w - pad - 2;
 
         Style style = HudFonts.style(c.font);
-        String t = fit(tr, style, title, maxText, c.font);
-        String a = fit(tr, style, artist, maxText, c.font);
+        String t = fit(tr, style, title, rightEdge - tx - (iconsW > 0 ? iconsW + 4 : 0), c.font);
+        String a = fit(tr, style, artist, (int) ((rightEdge - tx) / 0.8f), c.font);
 
         int alpha = Math.round(c.opacity * 255f / 100f);
         int bg1 = (alpha << 24) | HudConfig.rgb(c.bgColor, 0x121212);
         int bg2 = c.bgColor2.isEmpty() ? bg1 : (alpha << 24) | HudConfig.rgb(c.bgColor2, 0x121212);
+
+        int titleCol = 0xFF000000 | HudConfig.rgb(c.titleColor, 0xFFFFFF);
+        int artistCol = 0xFF000000 | HudConfig.rgb(c.artistColor, 0xB3B3B3);
+        int accentCol = 0xFF000000 | HudConfig.rgb(c.accentColor, 0x1DB954);
 
         ctx.getMatrices().pushMatrix();
         ctx.getMatrices().translate((float) c.x, (float) c.y);
@@ -68,26 +80,84 @@ public final class HudRenderer {
             strokeShape(ctx, 0, 0, w, h, c.rounded, 0xFF000000 | HudConfig.rgb(c.borderColor, 0x3A3A3A));
         }
 
-        int titleCol = 0xFF000000 | HudConfig.rgb(c.titleColor, 0xFFFFFF);
-        int artistCol = 0xFF000000 | HudConfig.rgb(c.artistColor, 0xB3B3B3);
-        int accentCol = 0xFF000000 | HudConfig.rgb(c.accentColor, 0x1DB954);
+        // Album art
+        if (c.showArt) {
+            Identifier art = AlbumArt.current(b.artPath());
+            if (art != null) {
+                ctx.drawTexture(RenderPipelines.GUI_TEXTURED, art, pad, pad, 0f, 0f,
+                        artSize, artSize, 64, 64, 64, 64);
+            } else {
+                ctx.fill(pad, pad, pad + artSize, pad + artSize, 0xFF2A2A2A);
+            }
+        }
 
-        ctx.drawText(tr, Text.literal(t).setStyle(style), pad, 5, titleCol, true);
-        ctx.drawText(tr, Text.literal(a).setStyle(style), pad, 17, artistCol, true);
+        // Title
+        ctx.drawText(tr, Text.literal(t).setStyle(style), tx, 5, titleCol, true);
 
+        // Artist (smaller)
+        drawScaled(ctx, tr, Text.literal(a).setStyle(style), tx, 16, 0.8f, artistCol);
+
+        // Control icons (display only)
+        if (c.showButtons) {
+            int ix = rightEdge - iconsW;
+            icon(ctx, 0, ix, 5, titleCol);
+            icon(ctx, playing ? 2 : 1, ix + 12, 5, titleCol);
+            icon(ctx, 3, ix + 24, 5, titleCol);
+        }
+
+        // Progress bar + times
         if (c.showProgress) {
-            int barX = pad;
-            int barY = h - 6;
-            int barW = w - pad * 2;
+            int barX = tx;
+            int barY = h - 17;
+            int barW = rightEdge - tx;
             ctx.fill(barX, barY, barX + barW, barY + 2, 0x55FFFFFF);
             if (progress >= 0f) {
                 int filled = Math.round(barW * progress);
                 int col = playing ? accentCol : 0xFF888888;
                 ctx.fill(barX, barY, barX + filled, barY + 2, col);
             }
+            String left = fmtTime(posMs);
+            String right = fmtTime(durMs);
+            drawScaled(ctx, tr, Text.literal(left), barX, barY + 5, 0.7f, artistCol);
+            int rw = Math.round(tr.getWidth(right) * 0.7f);
+            drawScaled(ctx, tr, Text.literal(right), barX + barW - rw, barY + 5, 0.7f, artistCol);
         }
 
         ctx.getMatrices().popMatrix();
+    }
+
+    private static void drawScaled(DrawContext ctx, TextRenderer tr, Text text, int x, int y, float scale, int color) {
+        ctx.getMatrices().pushMatrix();
+        ctx.getMatrices().translate((float) x, (float) y);
+        ctx.getMatrices().scale(scale, scale);
+        ctx.drawText(tr, text, 0, 0, color, true);
+        ctx.getMatrices().popMatrix();
+    }
+
+    private static String fmtTime(long ms) {
+        long s = Math.max(0, ms / 1000);
+        return String.format("%02d:%02d", s / 60, s % 60);
+    }
+
+    /** 0 = previous, 1 = play, 2 = pause, 3 = next. Icons are 6x7 pixels. */
+    private static void icon(DrawContext ctx, int kind, int x, int y, int col) {
+        switch (kind) {
+            case 0 -> {
+                ctx.fill(x, y, x + 1, y + 7, col);
+                for (int i = 0; i < 4; i++) ctx.fill(x + 5 - i, y + i, x + 6 - i, y + 7 - i, col);
+            }
+            case 1 -> {
+                for (int i = 0; i < 4; i++) ctx.fill(x + 1 + i, y + i, x + 2 + i, y + 7 - i, col);
+            }
+            case 2 -> {
+                ctx.fill(x + 1, y, x + 3, y + 7, col);
+                ctx.fill(x + 4, y, x + 6, y + 7, col);
+            }
+            default -> {
+                for (int i = 0; i < 4; i++) ctx.fill(x + i, y + i, x + i + 1, y + 7 - i, col);
+                ctx.fill(x + 5, y, x + 6, y + 7, col);
+            }
+        }
     }
 
     private static int inset(int row, int h, boolean rounded) {
